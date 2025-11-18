@@ -1,48 +1,70 @@
 """
-Database Schemas
+Database Schemas for CodeGummies
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Each Pydantic model maps to a MongoDB collection with the lowercase class name.
+Required collections:
+- users
+- admins
+- team_members
+- sessions
+- blog_posts
+- services
 
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+These schemas are used for validation and documentation.
 """
+from typing import Optional, List
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
-
+# Users (regular)
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: EmailStr = Field(..., description="Unique email address")
+    password_hash: Optional[str] = Field(None, description="BCrypt password hash (server-side only)")
+    provider: str = Field("local", description="Auth provider: local | google")
+    email_verified: bool = Field(False, description="Whether user's email is verified")
+    role: str = Field("user", description="Role: user")
+    avatar_url: Optional[str] = None
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+# Admins (pre-seeded; no signup route)
+class Admin(BaseModel):
+    name: str
+    email: EmailStr
+    password_hash: str
+    role: str = Field("admin", description="Role: admin")
 
-# Add your own schemas here:
-# --------------------------------------------------
+# Team members (managed by admins)
+class TeamMember(BaseModel):
+    name: str
+    title: str
+    photo_url: Optional[str] = None
+    bio: Optional[str] = None
+    active: bool = True
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+# Sessions (JWT metadata)
+class Session(BaseModel):
+    user_id: str
+    role: str
+    user_agent: Optional[str] = None
+    ip: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+# Blog posts
+class BlogPost(BaseModel):
+    title: str
+    slug: str
+    excerpt: Optional[str] = None
+    content: str
+    author_id: Optional[str] = None
+    tags: Optional[List[str]] = None
+    published: bool = False
+    published_at: Optional[datetime] = None
+
+# Services
+class Service(BaseModel):
+    title: str
+    slug: str
+    description: str
+    features: Optional[List[str]] = None
+    icon: Optional[str] = None
+    active: bool = True
